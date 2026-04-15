@@ -7,8 +7,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1KIfon3zkyxwaedkr4wWbuJbx2BgQMzkPbCAsk2MPkII';
-const SHEET_GID = process.env.GOOGLE_SHEET_GID || '2099658328';
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyWCwOXgS5BBrUBmIo0Mx5sidGQYZO91dkVe_F2MG_m5dEAm8yyLtaT_PKM0Vu76489PQ/exec';
 
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -78,11 +77,11 @@ function computeOverallStatus(lastWorkingDay: string | null): string {
 
 export async function POST() {
   try {
-    // Fetch CSV from Google Sheets
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
-    const response = await fetch(csvUrl);
+    // Fetch CSV from Google Apps Script proxy (keeps sheet private)
+    const csvUrl = `${APPS_SCRIPT_URL}?format=csv`;
+    const response = await fetch(csvUrl, { redirect: 'follow' });
     if (!response.ok) {
-      return NextResponse.json({ error: 'Failed to fetch Google Sheet' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch Google Sheet via Apps Script' }, { status: 500 });
     }
 
     const csvText = await response.text();

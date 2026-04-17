@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase, EmployeeWithTasks, OffboardingTask } from '@/lib/supabase';
+import { getVisibleTaskCategories, canToggleTaskCategory } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
+import AuthGuard from '@/components/AuthGuard';
 import Header from '@/components/Header';
 import Link from 'next/link';
 import {
   ArrowLeft, Calendar, Briefcase, Building2, User, Mail,
   CheckCircle2, Circle, Clock, AlertTriangle, Laptop,
-  Smartphone, FileText, Package, UserCheck,
+  Smartphone, FileText, Package, UserCheck, Lock,
 } from 'lucide-react';
 
 function getTaskStatusIcon(task: OffboardingTask) {
@@ -18,12 +21,35 @@ function getTaskStatusIcon(task: OffboardingTask) {
   return <Circle className="w-5 h-5 text-gray-300 shrink-0" />;
 }
 
-export default function EmployeeDetailPage() {
+function EmployeeDetailContent() {
   const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
   const [employee, setEmployee] = useState<EmployeeWithTasks | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const visibleCategories = getVisibleTaskCategories(user?.role ?? null);
+
+  // Check access permissions
+  const hasAccess = useCallback(() => {
+    if (!user?.role) return false;
+    if (user.role === 'HR') return true;
+    if (user.role === 'Manager') {
+      return user.managedEmployeeIds.includes(params.id as string) ||
+             user.employeeRecordId === params.id;
+    }
+    if (user.role === 'Employee') {
+      return user.employeeRecordId === params.id;
+    }
+    return false;
+  }, [user, params.id]);
+
   const fetchEmployee = useCallback(async () => {
+    if (!hasAccess()) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('offboarding_employees')
       .select('*, offboarding_tasks(*)')
@@ -33,21 +59,33 @@ export default function EmployeeDetailPage() {
     if (error) {
       console.error('Error:', error);
     } else {
-      setEmployee(data as EmployeeWithTasks);
+      // Filter tasks by visible categories
+      const emp = data as EmployeeWithTasks;
+      emp.offboarding_tasks = emp.offboarding_tasks.filter((t) =>
+        visibleCategories.includes(t.task_category)
+      );
+      setEmployee(emp);
     }
     setLoading(false);
-  }, [params.id]);
+  }, [params.id, hasAccess, visibleCategories]);
 
   useEffect(() => {
     fetchEmployee();
   }, [fetchEmployee]);
 
   const handleTaskToggle = async (taskId: string, currentStatus: string) => {
+    const task = employee?.offboarding_tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    if (!canToggleTaskCategory(user?.role ?? null, task.task_category)) {
+      return;
+    }
+
     const newStatus = currentStatus === 'Completed' ? 'Pending' : 'Completed';
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === 'Completed') {
       updates.completed_at = new Date().toISOString();
-      updates.completed_by = 'HR';
+      updates.completed_by = user?.email || user?.role || 'Unknown';
     } else {
       updates.completed_at = null;
       updates.completed_by = null;
@@ -74,6 +112,22 @@ export default function EmployeeDetailPage() {
         <Header />
         <div className="flex items-center justify-center py-20">
           <Clock className="w-8 h-8 text-pl-haze animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess()) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-7xl mx-auto px-6 py-8 text-center">
+          <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg mb-2">Access Denied</p>
+          <p className="text-sm text-gray-400 mb-4">You don&apos;t have permission to view this employee&apos;s details.</p>
+          <Link href="/dashboard" className="text-pl-haze hover:underline text-sm">
+            Back to Dashboard
+          </Link>
         </div>
       </div>
     );
@@ -121,7 +175,7 @@ export default function EmployeeDetailPage() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{employee.full_name}</h2>
-              <p className="text-gray-500 mt-1">{employee.job_title} · {employee.department}</p>
+              <p className="text-gray-500 mt-1">{employee.job_title} Â· {employee.department}</p>
             </div>
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium border ${
@@ -139,8 +193,12 @@ export default function EmployeeDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
             <InfoItem icon={Calendar} label="Last Working Day" value={lastDay} />
             <InfoItem icon={User} label="Line Manager" value={employee.line_manager || 'N/A'} />
-            <InfoItem icon={Mail} label="Manager Email" value={employee.line_manager_email || 'N/A'} />
-            <InfoItem icon={Mail} label="Employee Email" value={employee.employee_email || 'N/A'} />
+            {user?.role === 'HR' && (
+              <>
+                <InfoItem icon={Mail} label="Manager Email" value={employee.line_manager_email || 'N/A'} />
+                <InfoItem icon={Mail} label="Employee Email" value={employee.employee_email || 'N/A'} />
+              </>
+            )}
             <InfoItem icon={UserCheck} label="Handover To" value={employee.handover_receiver || 'N/A'} />
             <InfoItem icon={FileText} label="Exit Form" value={employee.exit_form_status || 'Not submitted'} />
             <InfoItem icon={Laptop} label="Laptop" value={employee.laptop_status || 'N/A'} />
@@ -174,27 +232,44 @@ export default function EmployeeDetailPage() {
 
         {/* Task Sections */}
         <div className="space-y-6">
-          <TaskSection
-            title="Employee Tasks"
-            color="pl-haze"
-            tasks={employeeTasks}
-            onToggle={handleTaskToggle}
-          />
-          <TaskSection
-            title="Manager Tasks"
-            color="pl-suede"
-            tasks={managerTasks}
-            onToggle={handleTaskToggle}
-          />
-          <TaskSection
-            title="HR Tasks"
-            color="green-700"
-            tasks={hrTasks}
-            onToggle={handleTaskToggle}
-          />
+          {employeeTasks.length > 0 && (
+            <TaskSection
+              title="Employee Tasks"
+              color="pl-haze"
+              tasks={employeeTasks}
+              onToggle={handleTaskToggle}
+              canToggle={canToggleTaskCategory(user?.role ?? null, 'Employee')}
+            />
+          )}
+          {managerTasks.length > 0 && (
+            <TaskSection
+              title="Manager Tasks"
+              color="pl-suede"
+              tasks={managerTasks}
+              onToggle={handleTaskToggle}
+              canToggle={canToggleTaskCategory(user?.role ?? null, 'Manager')}
+            />
+          )}
+          {hrTasks.length > 0 && (
+            <TaskSection
+              title="HR Tasks"
+              color="green-700"
+              tasks={hrTasks}
+              onToggle={handleTaskToggle}
+              canToggle={canToggleTaskCategory(user?.role ?? null, 'HR')}
+            />
+          )}
         </div>
       </main>
     </div>
+  );
+}
+
+export default function EmployeeDetailPage() {
+  return (
+    <AuthGuard>
+      <EmployeeDetailContent />
+    </AuthGuard>
   );
 }
 
@@ -215,11 +290,13 @@ function TaskSection({
   color,
   tasks,
   onToggle,
+  canToggle = true,
 }: {
   title: string;
   color: string;
   tasks: OffboardingTask[];
   onToggle: (id: string, status: string) => void;
+  canToggle?: boolean;
 }) {
   if (tasks.length === 0) return null;
   const completed = tasks.filter((t) => t.status === 'Completed').length;
@@ -228,16 +305,25 @@ function TaskSection({
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className={`px-6 py-4 border-b border-gray-100 flex items-center justify-between`}>
         <h3 className={`text-base font-semibold text-${color}`}>{title}</h3>
-        <span className="text-sm text-gray-400">{completed} / {tasks.length} complete</span>
+        <div className="flex items-center gap-2">
+          {!canToggle && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Lock className="w-3 h-3" /> View only
+            </span>
+          )}
+          <span className="text-sm text-gray-400">{completed} / {tasks.length} complete</span>
+        </div>
       </div>
       <div className="divide-y divide-gray-50">
         {tasks.map((task) => (
           <div
             key={task.id}
-            className={`flex items-center gap-4 px-6 py-3 cursor-pointer transition-colors ${
-              task.status === 'Completed' ? 'bg-green-50/30' : task.status === 'Overdue' ? 'bg-red-50/30 hover:bg-red-50/50' : 'hover:bg-gray-50'
+            className={`flex items-center gap-4 px-6 py-3 transition-colors ${
+              canToggle ? 'cursor-pointer' : 'cursor-default'
+            } ${
+              task.status === 'Completed' ? 'bg-green-50/30' : task.status === 'Overdue' ? 'bg-red-50/30 hover:bg-red-50/50' : canToggle ? 'hover:bg-gray-50' : ''
             }`}
-            onClick={() => onToggle(task.id, task.status)}
+            onClick={() => canToggle && onToggle(task.id, task.status)}
           >
             {getTaskStatusIcon(task)}
             <span className={`flex-1 text-sm ${task.status === 'Completed' ? 'line-through text-gray-400' : 'text-gray-700'}`}>

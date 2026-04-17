@@ -29,7 +29,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const buildAuthUser = useCallback(async (sbUser: User | null) => {
     if (!sbUser || !sbUser.email) {
-      setUser(null);
+      // TEST MODE: bypass auth, default to HR role
+      setUser({
+        id: 'test-hr-user',
+        email: 'hr@platinumlist.net',
+        role: 'HR',
+        managedEmployeeIds: [],
+        employeeRecordId: null,
+      });
       setSupabaseUser(null);
       setLoading(false);
       return;

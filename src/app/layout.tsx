@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Offboarding Dashboard | Platinumlist",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased min-h-screen bg-gray-50">{children}</body>
+      <body className="antialiased min-h-screen bg-gray-50">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

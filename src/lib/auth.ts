@@ -23,7 +23,12 @@ export type AuthUser = {
   employeeRecordId: string | null;
 };
 
-const HR_EMAILS = ['hr@platinumlist.net'];
+const HR_EMAILS = [
+  'hr@platinumlist.net',
+  'daria.kvashnina@platinumlist.net',
+  'siddh.r@platinumlist.net',
+  'arshkiran.s@platinumlist.net',
+];
 
 /**
  * Detect the user's role based on their email address.

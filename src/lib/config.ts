@@ -1,3 +1,6 @@
+// Effective date â only show offboarding records with last_working_day on or after this date
+export const EFFECTIVE_DATE = '2026-04-16';
+
 // Offboarding task templates - auto-generated for each departing employee
 export type TaskTemplate = {
   task_name: string;
@@ -7,7 +10,7 @@ export type TaskTemplate = {
 };
 
 export const OFFBOARDING_TASK_TEMPLATES: TaskTemplate[] = [
-  // ── Employee Tasks ──
+  // ââ Employee Tasks ââ
   { task_name: 'Submit resignation letter / confirmation', task_category: 'Employee', days_offset: -30, sort_order: 1 },
   { task_name: 'Complete handover documentation', task_category: 'Employee', days_offset: -7, sort_order: 2 },
   { task_name: 'Transfer knowledge to handover receiver', task_category: 'Employee', days_offset: -5, sort_order: 3 },
@@ -19,7 +22,7 @@ export const OFFBOARDING_TASK_TEMPLATES: TaskTemplate[] = [
   { task_name: 'Clear personal belongings from workspace', task_category: 'Employee', days_offset: 0, sort_order: 9 },
   { task_name: 'Submit final expense claims', task_category: 'Employee', days_offset: -5, sort_order: 10 },
 
-  // ── Manager Tasks ──
+  // ââ Manager Tasks ââ
   { task_name: 'Acknowledge resignation', task_category: 'Manager', days_offset: -28, sort_order: 11 },
   { task_name: 'Identify handover receiver', task_category: 'Manager', days_offset: -21, sort_order: 12 },
   { task_name: 'Review and approve handover documentation', task_category: 'Manager', days_offset: -5, sort_order: 13 },
@@ -29,7 +32,7 @@ export const OFFBOARDING_TASK_TEMPLATES: TaskTemplate[] = [
   { task_name: 'Communicate departure to stakeholders', task_category: 'Manager', days_offset: -7, sort_order: 17 },
   { task_name: 'Update team org chart', task_category: 'Manager', days_offset: 0, sort_order: 18 },
 
-  // ── HR Tasks ──
+  // ââ HR Tasks ââ
   { task_name: 'Process resignation in HRIS', task_category: 'HR', days_offset: -28, sort_order: 19 },
   { task_name: 'Calculate final settlement / EOSB', task_category: 'HR', days_offset: -7, sort_order: 20 },
   { task_name: 'Schedule exit interview', task_category: 'HR', days_offset: -10, sort_order: 21 },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase, EmployeeWithTasks } from '@/lib/supabase';
 import { EFFECTIVE_DATE } from '@/lib/config';
 import { getVisibleTaskCategories, canToggleTaskCategory } from '@/lib/auth';
@@ -21,7 +21,7 @@ function DashboardContent() {
   const [status, setStatus] = useState('');
   const [owner, setOwner] = useState('');
 
-  const visibleCategories = getVisibleTaskCategories(user?.role ?? null);
+  const visibleCategories = useMemo(() => getVisibleTaskCategories(user?.role ?? null), [user?.role]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);

@@ -11,7 +11,7 @@ export type OffboardingEmployee = {
   timestamp: string | null;
   full_name: string;
   department: string | null;
-  job_title: string | null;
+  job_title: string | null
   line_manager: string | null;
   line_manager_email: string | null;
   employee_email: string | null;
@@ -32,6 +32,7 @@ export type OffboardingTask = {
   employee_id: string;
   task_name: string;
   task_category: string; // 'Employee' | 'HR' | 'Manager'
+  task_stage?: string;
   status: string; // 'Pending' | 'In Progress' | 'Completed' | 'Overdue'
   due_date: string | null;
   completed_at: string | null;

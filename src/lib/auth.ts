@@ -97,10 +97,9 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 /**
- * Sign in with magic link (email)
+ * Send OTP code to email
  */
-export async function signInWithMagicLink(email: string): Promise<{ error: string | null }> {
-  // Only allow @platinumlist.net emails
+export async function sendOtp(email: string): Promise<{ error: string | null }> {
   if (!email.toLowerCase().endsWith('@platinumlist.net')) {
     return { error: 'Only @platinumlist.net email addresses are allowed.' };
   }
@@ -108,14 +107,29 @@ export async function signInWithMagicLink(email: string): Promise<{ error: strin
   const { error } = await supabaseAuth.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${window.location.origin}/dashboard`,
+      shouldCreateUser: true,
     },
   });
 
   if (error) {
     return { error: error.message };
   }
+  return { error: null };
+}
 
+/**
+ * Verify OTP code
+ */
+export async function verifyOtp(email: string, token: string): Promise<{ error: string | null }> {
+  const { error } = await supabaseAuth.auth.verifyOtp({
+    email,
+    token,
+    type: 'email',
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
   return { error: null };
 }
 

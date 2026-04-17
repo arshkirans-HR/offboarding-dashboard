@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { supabase, EmployeeWithTasks } from '@/lib/supabase';
+import { EFFECTIVE_DATE } from '@/lib/config';
 import Header from '@/components/Header';
+import AuthGuard from '@/components/AuthGuard';
 import { BarChart3, Users, CheckCircle2, Clock, AlertTriangle, TrendingUp } from 'lucide-react';
 
-export default function StatsPage() {
+function StatsContent() {
   const [employees, setEmployees] = useState<EmployeeWithTasks[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,7 +15,8 @@ export default function StatsPage() {
     async function fetch() {
       const { data } = await supabase
         .from('offboarding_employees')
-        .select('*, offboarding_tasks(*)');
+        .select('*, offboarding_tasks(*)')
+        .gte('last_working_day', EFFECTIVE_DATE);
       setEmployees((data as EmployeeWithTasks[]) || []);
       setLoading(false);
     }
@@ -214,5 +217,13 @@ function MiniStat({
       </div>
       <p className={`text-3xl font-bold ${color}`}>{value}</p>
     </div>
+  );
+}
+
+export default function StatsPage() {
+  return (
+    <AuthGuard>
+      <StatsContent />
+    </AuthGuard>
   );
 }

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { EmployeeWithTasks, OffboardingTask } from '@/lib/supabase';
+import { UserRole, canToggleTaskCategory } from '@/lib/auth';
 
 function getStatusColor(status: string | null) {
   switch (status) {
@@ -33,9 +34,11 @@ function getTaskStatusIcon(task: OffboardingTask) {
 export default function EmployeeCard({
   employee,
   onTaskToggle,
+  userRole,
 }: {
   employee: EmployeeWithTasks;
   onTaskToggle: (taskId: string, currentStatus: string) => void;
+  userRole?: UserRole;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -127,9 +130,9 @@ export default function EmployeeCard({
       {/* Expanded Task View */}
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4">
-          <TaskGroup label="Employee Tasks" tasks={employeeTasks} onToggle={onTaskToggle} color="text-pl-haze" />
-          <TaskGroup label="Manager Tasks" tasks={managerTasks} onToggle={onTaskToggle} color="text-pl-suede" />
-          <TaskGroup label="HR Tasks" tasks={hrTasks} onToggle={onTaskToggle} color="text-green-700" />
+          <TaskGroup label="Employee Tasks" tasks={employeeTasks} onToggle={onTaskToggle} color="text-pl-haze" canToggle={canToggleTaskCategory(userRole ?? null, 'Employee')} />
+          <TaskGroup label="Manager Tasks" tasks={managerTasks} onToggle={onTaskToggle} color="text-pl-suede" canToggle={canToggleTaskCategory(userRole ?? null, 'Manager')} />
+          <TaskGroup label="HR Tasks" tasks={hrTasks} onToggle={onTaskToggle} color="text-green-700" canToggle={canToggleTaskCategory(userRole ?? null, 'HR')} />
           {totalTasks === 0 && (
             <p className="text-sm text-gray-400 text-center py-4">
               No tasks generated yet. Click &quot;Sync &amp; Refresh&quot; to generate tasks.
@@ -146,11 +149,13 @@ function TaskGroup({
   tasks,
   onToggle,
   color,
+  canToggle = true,
 }: {
   label: string;
   tasks: OffboardingTask[];
   onToggle: (taskId: string, currentStatus: string) => void;
   color: string;
+  canToggle?: boolean;
 }) {
   if (tasks.length === 0) return null;
   const completed = tasks.filter((t) => t.status === 'Completed').length;
@@ -167,14 +172,16 @@ function TaskGroup({
           .map((task) => (
             <div
               key={task.id}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                canToggle ? 'cursor-pointer' : 'cursor-default opacity-80'
+              } ${
                 task.status === 'Completed'
                   ? 'bg-green-50/50'
                   : task.status === 'Overdue'
                   ? 'bg-red-50/50 hover:bg-red-50'
-                  : 'hover:bg-white'
+                  : canToggle ? 'hover:bg-white' : ''
               }`}
-              onClick={() => onToggle(task.id, task.status)}
+              onClick={() => canToggle && onToggle(task.id, task.status)}
             >
               {getTaskStatusIcon(task)}
               <span

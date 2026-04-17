@@ -12,11 +12,13 @@ type FiltersProps = {
   onDepartmentChange: (v: string) => void;
   onStatusChange: (v: string) => void;
   onOwnerChange: (v: string) => void;
+  visibleCategories?: string[];
 };
 
 export default function Filters({
   search, department, status, owner,
   onSearchChange, onDepartmentChange, onStatusChange, onOwnerChange,
+  visibleCategories,
 }: FiltersProps) {
   return (
     <div className="flex flex-wrap gap-3 mb-6">
@@ -56,9 +58,15 @@ export default function Filters({
         onChange={(e) => onOwnerChange(e.target.value)}
       >
         <option value="">All Owners</option>
-        <option value="HR">HR Tasks</option>
-        <option value="Manager">Manager Tasks</option>
-        <option value="Employee">Employee Tasks</option>
+        {(!visibleCategories || visibleCategories.includes('HR')) && (
+          <option value="HR">HR Tasks</option>
+        )}
+        {(!visibleCategories || visibleCategories.includes('Manager')) && (
+          <option value="Manager">Manager Tasks</option>
+        )}
+        {(!visibleCategories || visibleCategories.includes('Employee')) && (
+          <option value="Employee">Employee Tasks</option>
+        )}
       </select>
     </div>
   );

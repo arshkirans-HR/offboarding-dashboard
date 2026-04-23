@@ -175,7 +175,7 @@ function EmployeeDetailContent() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{employee.full_name}</h2>
-              <p className="text-gray-500 mt-1">{employee.job_title} Â· {employee.department}</p>
+              <p className="text-gray-500 mt-1">{employee.job_title} ÃÂ· {employee.department}</p>
             </div>
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium border ${
@@ -250,12 +250,30 @@ function EmployeeDetailContent() {
               canToggle={canToggleTaskCategory(user?.role ?? null, 'Manager')}
             />
           )}
-          {hrTasks.length > 0 && (
+          {hrTasks.filter(t => t.task_stage === 'Handover Stage').length > 0 && (
             <TaskSection
-              title="HR Tasks"
+              title="Handover Stage"
               color="green-700"
-              tasks={hrTasks}
-              onToggle={handleTaskToggle}
+              tasks={hrTasks.filter(t => t.task_stage === 'Handover Stage')}
+              onToggle={handleToggle}
+              canToggle={canToggleTaskCategory(user?.role ?? null, 'HR')}
+            />
+          )}
+          {hrTasks.filter(t => t.task_stage === 'Last Working Day').length > 0 && (
+            <TaskSection
+              title="Last Working Day"
+              color="green-700"
+              tasks={hrTasks.filter(t => t.task_stage === 'Last Working Day')}
+              onToggle={handleToggle}
+              canToggle={canToggleTaskCategory(user?.role ?? null, 'HR')}
+            />
+          )}
+          {hrTasks.filter(t => t.task_stage === 'Post Exit').length > 0 && (
+            <TaskSection
+              title="Post Exit"
+              color="green-700"
+              tasks={hrTasks.filter(t => t.task_stage === 'Post Exit')}
+              onToggle={handleToggle}
               canToggle={canToggleTaskCategory(user?.role ?? null, 'HR')}
             />
           )}

@@ -175,7 +175,7 @@ function EmployeeDetailContent() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{employee.full_name}</h2>
-              <p className="text-gray-500 mt-1">{employee.job_title} ÃÂÃÂÃÂÃÂ· {employee.department}</p>
+              <p className="text-gray-500 mt-1">{employee.job_title || ""} &middot; {employee.department || ""}</p>
             </div>
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium border ${

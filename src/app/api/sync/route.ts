@@ -4,10 +4,12 @@ import { OFFBOARDING_TASK_TEMPLATES } from '@/lib/config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyWCwOXgS5BBrUBmIo0Mx5sidGQYZO91dkVe_F2MG_m5dEAm8yyLtaT_PKM0Vu76489PQ/exec';
+const APPS_SCRIPT_URL =
+  process.env.APPS_SCRIPT_URL ||
+  'https://script.google.com/macros/s/AKfycbyWCwOXgS5BBrUBmIo0Mx5sidGQYZO91dkVe_F2MG_m5dEAm8yyLtaT_PKM0Vu76489PQ/exec';
 
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -46,6 +48,7 @@ function parseCSV(text: string): string[][] {
 
 function parseDate(dateStr: string): string | null {
   if (!dateStr) return null;
+
   // Try M/D/YYYY format first (from Google Sheets)
   const parts = dateStr.split('/');
   if (parts.length === 3) {
@@ -56,11 +59,13 @@ function parseDate(dateStr: string): string | null {
       return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
   }
+
   // Try ISO format
   const d = new Date(dateStr);
   if (!isNaN(d.getTime())) {
     return d.toISOString().split('T')[0];
   }
+
   return null;
 }
 
@@ -80,6 +85,7 @@ export async function POST() {
     // Fetch CSV from Google Apps Script proxy (keeps sheet private)
     const csvUrl = `${APPS_SCRIPT_URL}?format=csv`;
     const response = await fetch(csvUrl, { redirect: 'follow' });
+
     if (!response.ok) {
       return NextResponse.json({ error: 'Failed to fetch Google Sheet via Apps Script' }, { status: 500 });
     }
@@ -108,8 +114,8 @@ export async function POST() {
     // 13: Email Address
     // 14: Request #
     // 15: Overall Status
-
     const dataRows = rows.slice(1); // skip header
+
     let synced = 0;
     let created = 0;
 
@@ -150,6 +156,7 @@ export async function POST() {
 
       // Upsert employee by request_number
       let employeeId: string;
+
       if (requestNum) {
         const { data: existing } = await supabase
           .from('offboarding_employees')
@@ -241,6 +248,7 @@ async function generateTasks(employeeId: string, lastWorkingDay: string | null) 
       employee_id: employeeId,
       task_name: template.task_name,
       task_category: template.task_category,
+      task_stage: template.task_stage,
       status: 'Pending',
       due_date: dueDate,
       sort_order: template.sort_order,

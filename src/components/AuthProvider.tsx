@@ -29,21 +29,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const buildAuthUser = useCallback(async (sbUser: User | null) => {
     if (!sbUser || !sbUser.email) {
-      // TEST MODE: bypass auth, default to HR role
-      setUser({
-        id: 'test-hr-user',
-        email: 'hr@platinumlist.net',
-        role: 'HR',
-        managedEmployeeIds: [],
-        employeeRecordId: null,
-      });
+      // No authenticated user â require login
+      setUser(null);
       setSupabaseUser(null);
       setLoading(false);
       return;
     }
 
     setSupabaseUser(sbUser);
-
     const { role, managedEmployeeIds, employeeRecordId } = await detectUserRole(sbUser.email);
 
     setUser({
@@ -60,9 +53,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     if (supabaseUser?.email) {
       const { role, managedEmployeeIds, employeeRecordId } = await detectUserRole(supabaseUser.email);
       setUser((prev) =>
-        prev
-          ? { ...prev, role, managedEmployeeIds, employeeRecordId }
-          : null
+        prev ? { ...prev, role, managedEmployeeIds, employeeRecordId } : null
       );
     }
   }, [supabaseUser]);

@@ -15,6 +15,8 @@ interface SlackNotifyPayload {
   department: string;
   lastWorkingDay: string;
   employeeId: string; // Supabase record ID for dashboard link
+  exitType?: string;
+  notifyEmployee?: boolean; // false for "Termination without notice"
 }
 
 /**
@@ -92,38 +94,41 @@ export async function sendOffboardingNotifications(payload: SlackNotifyPayload):
 }> {
   const result = { employeeNotified: false, managerNotified: false, hrNotified: false };
   const dashboardLink = `${DASHBOARD_URL}/employee/${payload.employeeId}`;
+  const shouldNotifyEmployee = payload.notifyEmployee !== false;
 
-  // 1. Notify Employee
-  const employeeSlackId = await findSlackUserByEmail(payload.employeeEmail);
-  if (employeeSlackId) {
-    result.employeeNotified = await sendSlackMessage(
-      employeeSlackId,
-      `Hi ${payload.employeeName}, your offboarding process has been initiated. Please review and complete your tasks.`,
-      [
-        {
-          type: 'header',
-          text: { type: 'plain_text', text: 'Your Offboarding Has Started', emoji: true }
-        },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `Hi *${payload.employeeName}*,\n\nYour offboarding process has been initiated. Your last working day is *${payload.lastWorkingDay}*.\n\nPlease review and complete your assigned tasks on the dashboard.`
-          }
-        },
-        {
-          type: 'actions',
-          elements: [
-            {
-              type: 'button',
-              text: { type: 'plain_text', text: 'View My Tasks', emoji: true },
-              url: dashboardLink,
-              style: 'primary'
+  // 1. Notify Employee (skip for "Termination without notice")
+  if (shouldNotifyEmployee) {
+    const employeeSlackId = await findSlackUserByEmail(payload.employeeEmail);
+    if (employeeSlackId) {
+      result.employeeNotified = await sendSlackMessage(
+        employeeSlackId,
+        `Hi ${payload.employeeName}, your offboarding process has been initiated. Please review and complete your tasks.`,
+        [
+          {
+            type: 'header',
+            text: { type: 'plain_text', text: 'Your Offboarding Has Started', emoji: true }
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `Hi *${payload.employeeName}*,\n\nYour offboarding process has been initiated. Your last working day is *${payload.lastWorkingDay}*.\n\nPlease review and complete your assigned tasks on the dashboard.`
             }
-          ]
-        }
-      ]
-    );
+          },
+          {
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: { type: 'plain_text', text: 'View My Tasks', emoji: true },
+                url: dashboardLink,
+                style: 'primary'
+              }
+            ]
+          }
+        ]
+      );
+    }
   }
 
   // 2. Notify Manager
@@ -173,6 +178,7 @@ export async function sendOffboardingNotifications(payload: SlackNotifyPayload):
         fields: [
           { type: 'mrkdwn', text: `*Employee:*\n${payload.employeeName}` },
           { type: 'mrkdwn', text: `*Department:*\n${payload.department}` },
+          { type: 'mrkdwn', text: `*Exit Type:*\n${payload.exitType || 'Resignation'}` },
           { type: 'mrkdwn', text: `*Manager:*\n${payload.managerName}` },
           { type: 'mrkdwn', text: `*Last Working Day:*\n${payload.lastWorkingDay}` },
         ]
@@ -181,7 +187,7 @@ export async function sendOffboardingNotifications(payload: SlackNotifyPayload):
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `Employee notified: ${employeeSlackId ? 'Yes' : 'No (email not in Slack)'}\nManager notified: ${managerSlackId ? 'Yes' : 'No (email not in Slack)'}`
+          text: `Employee notified: ${shouldNotifyEmployee ? (result.employeeNotified ? 'Yes' : 'No (email not in Slack)') : 'No (not applicable for this exit type)'}\nManager notified: ${managerSlackId ? 'Yes' : 'No (email not in Slack)'}`
         }
       },
       {

@@ -1,6 +1,22 @@
 // Effective date - only show offboarding records with last_working_day on or after this date
 export const EFFECTIVE_DATE = '2026-04-16';
 
+// Exit types
+export type ExitType = 'Termination without notice' | 'Termination with notice' | 'Resignation' | 'End of contract';
+
+export const EXIT_TYPES: { value: ExitType; label: string }[] = [
+  { value: 'Resignation', label: 'Resignation' },
+  { value: 'Termination with notice', label: 'Termination with Notice' },
+  { value: 'Termination without notice', label: 'Termination without Notice' },
+  { value: 'End of contract', label: 'End of Contract' },
+];
+
+// For "Termination without notice", only HR and Manager tasks are active.
+// Employee tasks are auto-skipped and the employee does NOT receive a Slack DM.
+export function isEmployeeInvolved(exitType: ExitType): boolean {
+  return exitType !== 'Termination without notice';
+}
+
 // Offboarding task templates - auto-generated for each departing employee
 export type TaskTemplate = {
   task_name: string;
